@@ -41,7 +41,7 @@ class App:
                 self.on_error(f'unknown repo {name}')
 
     def enforce_repo_access(self, repo, after):
-        teams = [team for team in repo.get_teams()]
+        teams = repo.get_teams()
         if not self.main_team_has_admin_access_to_repo(teams, repo):
             self.on_error(
                 f'team does not have admin access to repo {repo.name}'

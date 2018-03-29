@@ -76,6 +76,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = True
 
@@ -117,6 +118,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = True
 
@@ -171,6 +173,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = True
 
@@ -217,6 +220,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = True
 
@@ -242,6 +246,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = False
         repo.permissions.push = False
@@ -261,6 +266,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = False
         repo.permissions.push = True
@@ -287,6 +293,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = True
         self.main_team.get_repos.return_value = [repo]
@@ -315,6 +322,7 @@ class TestApp(unittest.TestCase):
         repo_name = 'test-repo'
 
         repo = Mock()
+        repo.archived = False
         repo.name = repo_name
         repo.permissions.admin = True
         self.main_team.get_repos.return_value = [repo]

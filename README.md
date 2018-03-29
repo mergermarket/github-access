@@ -3,9 +3,9 @@ This container can be used to set the repository permissions for a team.
 Usage:
 
     export GITHUB_TOKEN=my-team-member-github-token
-    docker run -i -w $PWD -v $PWD -e GITHUB_TOKEN mergermark/github-access \\
-        --org my-org \\
-        --team my-team \\
+    docker run -i -w $PWD -v $PWD -e GITHUB_TOKEN mergermark/github-access \
+        --org my-org \
+        --team my-team \
         --access access.json
 
 access.json should be a json file containing desired permissions for each of

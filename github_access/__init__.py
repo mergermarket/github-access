@@ -18,19 +18,22 @@ class App:
         }
         self.main_team = self.teams[main_team_name]
 
-    def enforce_access(self, access):
+    def run(self, access):
         seen = set()
         for repo in self.main_team.get_repos():
             if repo.archived:
                 continue
             seen.add(repo.name)
-            if repo.permissions.admin:
-                desired = access.get(repo.name)
-                if desired is None:
-                    self.on_error(f'no config for repo {repo.name}')
-                    continue
-                self.enforce_repo_access(repo, desired['teams'])
+            self.handle_repo(repo, access.get(repo.name))
         self.check_unknown_repos(access, seen)
+
+    def handle_repo(self, repo, desired):
+        if not repo.permissions.admin:
+            return
+        if desired is None:
+            self.on_error(f'no config for repo {repo.name}')
+            return
+        self.enforce_repo_access(repo, desired['teams'])
 
     def check_unknown_repos(self, access, seen):
         for name in access:
@@ -115,7 +118,7 @@ def main(args, github_token):
     app = App(arguments.org, arguments.team, github_token, handle_error)
 
     with open(arguments.access, 'r') as f:
-        app.enforce_access(json.loads(f.read()))
+        app.run(json.loads(f.read()))
 
     if failed:
         print('error(s) were encountered - see above', file=sys.stderr)

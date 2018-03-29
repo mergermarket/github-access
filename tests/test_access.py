@@ -30,7 +30,7 @@ class TestArgs(unittest.TestCase):
                 'test-org', 'test-team', 'test-github-token', ANY
             )
             mocked_open.assert_called_once_with('test-file.json', 'r')
-            App.return_value.enforce_access.assert_called_once_with(access)
+            App.return_value.run.assert_called_once_with(access)
 
 
 class TestApp(unittest.TestCase):
@@ -89,7 +89,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = [repo]
 
         # when
-        self.app.enforce_access({
+        self.app.run({
             repo_name: {
                 'teams': {
                     self.test_admin_team.name: 'admin',
@@ -146,7 +146,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = [repo]
 
         # when
-        self.app.enforce_access({
+        self.app.run({
             repo_name: {
                 'teams': {
                     self.test_admin_team.name: 'push',
@@ -201,7 +201,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = [repo]
 
         # when
-        self.app.enforce_access({
+        self.app.run({
             repo_name: {
                 'teams': {}
             }
@@ -233,7 +233,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = [repo]
 
         # when
-        self.app.enforce_access({})
+        self.app.run({})
 
         # then
         assert self.errors == [
@@ -254,7 +254,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = [repo]
 
         # when
-        self.app.enforce_access({})
+        self.app.run({})
 
         # then
         self.main_team.get_repos.assert_called_once_with()
@@ -274,7 +274,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = [repo]
 
         # when
-        self.app.enforce_access({})
+        self.app.run({})
 
         # then
         self.main_team.get_repos.assert_called_once_with()
@@ -305,7 +305,7 @@ class TestApp(unittest.TestCase):
         repo.get_teams.return_value = [main_team_repo_access]
 
         # when
-        self.app.enforce_access({
+        self.app.run({
             repo_name: {'teams': {}}
         })
 
@@ -334,7 +334,7 @@ class TestApp(unittest.TestCase):
         repo.get_teams.return_value = [main_team_repo_access]
 
         # when
-        self.app.enforce_access({
+        self.app.run({
             repo_name: {'teams': {
                 'not-a-team': 'push'
             }}
@@ -353,7 +353,7 @@ class TestApp(unittest.TestCase):
         self.main_team.get_repos.return_value = []
 
         # when
-        self.app.enforce_access({
+        self.app.run({
             'unknown-repo': {}
         })
 

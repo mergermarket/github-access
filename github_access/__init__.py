@@ -77,6 +77,11 @@ class App:
                 f'{repo.name} (was {before})'
             )
             team.set_repo_permission(repo, after)
+            if after == 'admin':
+                self.on_error(
+                    f'additional team {team.name} has admin access to'
+                    f' repo {repo.name} (resolve by completing transfer)'
+                )
 
     def main_team_has_admin_access_to_repo(self, teams, repo):
         main_team_access = [

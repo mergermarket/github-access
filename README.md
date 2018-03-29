@@ -1,3 +1,5 @@
+# github-access
+
 This container can be used to set the repository permissions for a team.
 
 Usage:
@@ -26,3 +28,10 @@ access to, or if you have admin access to repos not in access.json. Otherwise
 it will enforce that the team access to the listed repositories is as
 specified in the file. You can start with an empty file to find out what repos
 you have admin access to.
+
+Note that you do not have to (and should not) included `my-team` in the repo
+permissions - this team's admin permission will be left alone. To transfer
+admin to another team, add admin privilege to that team (during transfer this
+will result in an ignorable error). Now that they have admin, they will be able
+revoke the original team's admin access - at this point the error will change
+and the repository should be removed from the file.

@@ -106,6 +106,10 @@ class TestApp(unittest.TestCase):
         )
         self.test_push_team.set_repo_permission.called_once_with(repo, 'push')
         self.test_pull_team.set_repo_permission.called_once_with(repo, 'pull')
+        assert self.errors == [
+            f'additional team {self.test_admin_team.name} has admin access to'
+            f' repo {repo_name} (resolve by completing transfer)'
+        ]
 
     def test_team_permissions_modified(self):
 
@@ -156,6 +160,10 @@ class TestApp(unittest.TestCase):
         self.test_admin_team.set_repo_permission.called_once_with(repo, 'push')
         self.test_push_team.set_repo_permission.called_once_with(repo, 'pull')
         self.test_pull_team.set_repo_permission.called_once_with(repo, 'admin')
+        assert self.errors == [
+            f'additional team {self.test_pull_team.name} has admin access to'
+            f' repo {repo_name} (resolve by completing transfer)'
+        ]
 
     def test_team_permissions_removed(self):
 

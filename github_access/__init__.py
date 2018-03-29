@@ -106,7 +106,7 @@ def main(args, github_token):
     failed = False
 
     def handle_error(err):
-        global failed
+        nonlocal failed
         logging.error(err)
         failed = True
 
@@ -116,4 +116,5 @@ def main(args, github_token):
         app.enforce_access(json.loads(f.read()))
 
     if failed:
+        print('error(s) were encountered - see above', file=sys.stderr)
         sys.exit(1)

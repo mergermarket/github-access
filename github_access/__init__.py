@@ -21,6 +21,8 @@ class App:
     def enforce_access(self, access):
         seen = set()
         for repo in self.main_team.get_repos():
+            if repo.archived:
+                continue
             seen.add(repo.name)
             if repo.permissions.admin:
                 desired = access.get(repo.name)

@@ -13,8 +13,29 @@ Usage:
 access.json should be a json file containing desired permissions for each of
 the repositories that `my-team` has access to - for example:
 
+    [
+      {
+        "teams": {
+          "a-github-team-to-give-admin-access-to": "admin",
+          "a-github-team-to-give-push-access-to": "push",
+          "a-github-team-to-give-pull-access-to": "pull",
+        },
+        "repos": [ "repo1", "repo2" ]
+      }
+    ]
+
+The following equivalent format is also supported, but should be considered
+deprecated since it causes duplication:
+
     {
-      "my-repo": {
+      "repo1": {
+        "teams": {
+          "a-github-team-to-give-admin-access-to": "admin",
+          "a-github-team-to-give-push-access-to": "push",
+          "a-github-team-to-give-pull-access-to": "pull",
+        }
+      },
+      "repo2": {
         "teams": {
           "a-github-team-to-give-admin-access-to": "admin",
           "a-github-team-to-give-push-access-to": "push",

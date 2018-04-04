@@ -33,6 +33,29 @@ class TestArgs(unittest.TestCase):
             App.return_value.run.assert_called_once_with(access)
 
 
+class TestFormatConversion(unittest.TestCase):
+
+    def test_array_conversion(self):
+
+        self.assertEqual(
+            github_access.convert_access([
+                {
+                    'teams': {'team-a': 'pull', 'team-b': 'push'},
+                    'repos': ['repo-a', 'repo-b']
+                },
+                {
+                    'teams': {'team-c': 'pull'},
+                    'repos': ['repo-c']
+                }
+            ]),
+            {
+                'repo-a': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
+                'repo-b': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
+                'repo-c': {'teams': {'team-c': 'pull'}}
+            }
+        )
+
+
 class TestApp(unittest.TestCase):
 
     @patch('github_access.Github')

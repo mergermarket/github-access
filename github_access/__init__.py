@@ -97,6 +97,17 @@ class App:
             and main_team_access[0].permission == 'admin'
 
 
+def convert_access(access):
+    if type(access) is dict:
+        # later this may be deprecated since the array format is dry'er
+        return access
+    return {
+        repo: {'teams': level['teams']}
+        for level in access
+        for repo in level['repos']
+    }
+
+
 def main(args, github_token):
 
     logging.basicConfig(level=logging.INFO)
@@ -118,7 +129,7 @@ def main(args, github_token):
     app = App(arguments.org, arguments.team, github_token, handle_error)
 
     with open(arguments.access, 'r') as f:
-        app.run(json.loads(f.read()))
+        app.run(convert_access(json.loads(f.read())))
 
     if failed:
         print('error(s) were encountered - see above', file=sys.stderr)

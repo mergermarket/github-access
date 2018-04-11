@@ -11,7 +11,7 @@ class TestArgs(unittest.TestCase):
     def test_args(self, App):
 
         # given
-        access = {'test': 1}
+        access = [{'repos': ['test'], 'teams': {}}]
         with patch(
             'github_access.open',
             mock_open(read_data=json.dumps(access)),
@@ -30,7 +30,9 @@ class TestArgs(unittest.TestCase):
                 'test-org', 'test-team', 'test-github-token', ANY
             )
             mocked_open.assert_called_once_with('test-file.json', 'r')
-            App.return_value.run.assert_called_once_with(access)
+            App.return_value.run.assert_called_once_with({
+                'test': {'teams': {}}
+            })
 
 
 class TestFormatConversion(unittest.TestCase):
@@ -38,7 +40,7 @@ class TestFormatConversion(unittest.TestCase):
     def test_array_conversion(self):
 
         self.assertEqual(
-            github_access.convert_access([
+            github_access.convert_access_config([
                 {
                     'teams': {'team-a': 'pull', 'team-b': 'push'},
                     'repos': ['repo-a', 'repo-b']
@@ -47,7 +49,7 @@ class TestFormatConversion(unittest.TestCase):
                     'teams': {'team-c': 'pull'},
                     'repos': ['repo-c']
                 }
-            ]),
+            ], 'test-main-team'),
             {
                 'repo-a': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
                 'repo-b': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
@@ -260,7 +262,8 @@ class TestApp(unittest.TestCase):
 
         # then
         assert self.errors == [
-            f'no config for repo {repo_name}'
+            f'team has admin access to {repo.name}, but there is no config'
+            ' for that repository'
         ]
 
     def test_pull_repo_ignored(self):
@@ -382,4 +385,7 @@ class TestApp(unittest.TestCase):
 
         # then
         self.main_team.get_repos.assert_called_once_with()
-        assert self.errors == ['unknown repo unknown-repo']
+        assert self.errors == [
+            f'config contained repo unknown-repo, but no info about this '
+            'repo was returned from Github'
+        ]

@@ -18,40 +18,50 @@ class App:
         }
         self.main_team = self.teams[main_team_name]
 
-    def run(self, access):
+    def run(self, access_config):
         seen = set()
         for repo in self.main_team.get_repos():
             if repo.archived:
                 continue
             seen.add(repo.name)
-            self.handle_repo(repo, access.get(repo.name))
-        self.check_unknown_repos(access, seen)
+            self.handle_repo(repo, access_config.get(repo.name))
+        self.check_unknown_repos(access_config, seen)
 
-    def handle_repo(self, repo, desired):
+    def handle_repo(self, repo, repo_access_config):
         if not repo.permissions.admin:
             return
-        if desired is None:
-            self.on_error(f'no config for repo {repo.name}')
+        if repo_access_config is None:
+            self.on_error(
+                f'team has admin access to {repo.name}, but there is no config'
+                ' for that repository'
+            )
             return
-        self.enforce_repo_access(repo, desired['teams'])
+        self.enforce_repo_access(repo, repo_access_config['teams'])
 
-    def check_unknown_repos(self, access, seen):
-        for name in access:
+    def check_unknown_repos(self, access_config, seen):
+        for name in access_config:
             if name not in seen:
-                self.on_error(f'unknown repo {name}')
+                self.on_error(
+                    f'config contained repo {name}, but no info about this '
+                    'repo was returned from Github'
+                )
 
-    def enforce_repo_access(self, repo, after):
+    def enforce_repo_access(self, repo, desired_permission_by_team):
         teams = repo.get_teams()
-        if not self.main_team_has_admin_access_to_repo(teams, repo):
+        if not self.main_team_has_admin_access_to_repo(teams):
             self.on_error(
                 f'team does not have admin access to repo {repo.name}'
             )
             return
-        before = {
+        current_permission_by_team = {
             team.name: team.permission for team in teams
             if team.name != self.main_team.name
         }
-        for team_name in set(list(before.keys()) + list(after.keys())):
+        all_teams = set(
+            list(desired_permission_by_team) +
+            list(current_permission_by_team)
+        )
+        for team_name in all_teams:
             team = self.teams.get(team_name)
             if team is None:
                 self.on_error(
@@ -59,36 +69,38 @@ class App:
                 )
                 continue
             self.update_team_permission(
-                team, repo, before.get(team_name),
-                after.get(team_name)
+                team, repo, current_permission_by_team.get(team_name),
+                desired_permission_by_team.get(team_name)
             )
 
-    def update_team_permission(self, team, repo, before, after):
-        if after == 'admin':
+    def update_team_permission(
+        self, team, repo, current_permission, desired_permission
+    ):
+        if desired_permission == 'admin':
             self.on_error(
                 f'additional team {team.name} has admin access to'
                 f' repo {repo.name} (resolve by completing transfer)'
             )
-        if before == after:
+        if current_permission == desired_permission:
             logging.info(
-                f'team {team.name} {after} permission to repo {repo.name}'
-                f' unchanged'
+                f'team {team.name} {desired_permission} permission to repo '
+                f'{repo.name} unchanged'
             )
             return
-        if after is None:
+        if desired_permission is None:
             logging.info(
-                f'revoking team {team.name} {before} permission from '
-                f'repo {repo.name} '
+                f'revoking team {team.name} {current_permission} permission '
+                f'from repo {repo.name} '
             )
             team.remove_from_repos(repo)
         else:
             logging.info(
-                f'granting team {team.name} {after} permission to repo '
-                f'{repo.name} (was {before})'
+                f'granting team {team.name} {desired_permission} permission '
+                f'to repo {repo.name} (was {current_permission})'
             )
-            team.set_repo_permission(repo, after)
+            team.set_repo_permission(repo, desired_permission)
 
-    def main_team_has_admin_access_to_repo(self, teams, repo):
+    def main_team_has_admin_access_to_repo(self, teams):
         main_team_access = [
             team for team in teams if team.name == self.main_team.name
         ]
@@ -97,13 +109,29 @@ class App:
             and main_team_access[0].permission == 'admin'
 
 
-def convert_access(access):
-    if type(access) is dict:
-        # later this may be deprecated since the array format is dry'er
-        return access
+def validate_main_team_not_configured(teams, main_team):
+    for team in teams:
+        if team == main_team:
+            raise Exception(
+                f'team {team} should not be listed - this is implied'
+            )
+
+
+def validate_access_config(access_config, main_team):
+    seen = set()
+    for level in access_config:
+        validate_main_team_not_configured(level['teams'], main_team)
+        for repo in level['repos']:
+            if repo in seen:
+                raise Exception(f'repo {repo} listed twice')
+            seen.add(repo)
+
+
+def convert_access_config(access_config, main_team):
+    validate_access_config(access_config, main_team)
     return {
         repo: {'teams': level['teams']}
-        for level in access
+        for level in access_config
         for repo in level['repos']
     }
 
@@ -129,7 +157,12 @@ def main(args, github_token):
     app = App(arguments.org, arguments.team, github_token, handle_error)
 
     with open(arguments.access, 'r') as f:
-        app.run(convert_access(json.loads(f.read())))
+        app.run(
+            convert_access_config(
+                json.loads(f.read()),
+                arguments.team
+            )
+        )
 
     if failed:
         print('error(s) were encountered - see above', file=sys.stderr)

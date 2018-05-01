@@ -21,15 +21,13 @@ class App:
     def run(self, access_config):
         seen = set()
         for repo in self.main_team.get_repos():
-            if repo.archived:
+            if repo.archived or not repo.permissions.admin:
                 continue
             seen.add(repo.name)
             self.handle_repo(repo, access_config.get(repo.name))
         self.check_unknown_repos(access_config, seen)
 
     def handle_repo(self, repo, repo_access_config):
-        if not repo.permissions.admin:
-            return
         if repo_access_config is None:
             self.on_error(
                 f'team has admin access to {repo.name}, but there is no config'
@@ -42,8 +40,8 @@ class App:
         for name in access_config:
             if name not in seen:
                 self.on_error(
-                    f'config contained repo {name}, but no info about this '
-                    'repo was returned from Github'
+                    f'config contained repo {name}, but team does not have '
+                    'admin access'
                 )
 
     def enforce_repo_access(self, repo, desired_permission_by_team):

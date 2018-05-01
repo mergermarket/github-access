@@ -386,6 +386,35 @@ class TestApp(unittest.TestCase):
         # then
         self.main_team.get_repos.assert_called_once_with()
         assert self.errors == [
-            f'config contained repo unknown-repo, but no info about this '
-            'repo was returned from Github'
+            f'config contained repo unknown-repo, but team does not have '
+            'admin access'
+        ]
+
+    def test_error_on_unknown_repo_with_write(self):
+
+        # given
+        repo_name = 'test-repo'
+
+        repo = Mock()
+        repo.archived = False
+        repo.name = repo_name
+        repo.permissions.admin = False
+        self.main_team.get_repos.return_value = [repo]
+
+        main_team_repo_access = Mock()
+        main_team_repo_access.name = self.main_team.name
+        main_team_repo_access.permission = 'write'
+
+        repo.get_teams.return_value = [main_team_repo_access]
+
+        # when
+        self.app.run({
+            repo_name: {}
+        })
+
+        # then
+        self.main_team.get_repos.assert_called_once_with()
+        assert self.errors == [
+            f'config contained repo {repo_name}, but team does not have '
+            'admin access'
         ]

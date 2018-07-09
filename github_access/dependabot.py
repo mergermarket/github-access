@@ -85,9 +85,9 @@ def create_configs_in_dependabot(repos, on_error):
                 headers=dependabot_headers)
 
             if response.status_code == 201 and response.reason == 'Created':
-                logger.info(f"Config for repo {repo.get('name')} added to Depemdabot")
+                logger.info(f"Config for repo {repo.get('name')} added to Dependabot")
             elif response.status_code == 400:
-                logger.info(f"Config for repo {repo.get('name')} already exists Depemdabot")
+                logger.info(f"Config for repo {repo.get('name')} already exists Dependabot")
             else:
                 on_error(
                     f"Failed to add repo {repo.get('name')} to Dependabot app installation "

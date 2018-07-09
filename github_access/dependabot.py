@@ -80,18 +80,18 @@ def create_configs_in_dependabot(repos, on_error):
             }
             response = requests.request(
                 'POST',
-                'https://api.dependabot.com/update_configs ',
-                json=json.dumps(data),
+                'https://api.dependabot.com/update_configs',
+                data=json.dumps(data),
                 headers=dependabot_headers)
 
             if response.status_code == 201 and response.reason == 'Created':
-                logger.info(f"Config for repo {repo.get('name')} added to Dependabot")
-            elif response.status_code == 400:
-                logger.info(f"Config for repo {repo.get('name')} already exists Dependabot")
+                logger.info(f"Config for repo {repo.get('name')}:{package_mngr} added to Dependabot")
+            elif response.status_code == 400 and "already exists" in response.text:
+                logger.info(f"Config for repo {repo.get('name')}:{package_mngr} already exists in Dependabot")
             else:
                 on_error(
-                    f"Failed to add repo {repo.get('name')} to Dependabot app installation "
-                    f"(Staus Code: {response.status_code})"
+                    f"Failed to add repo {repo.get('name')}:{package_mngr} to Dependabot app installation "
+                    f"(Staus Code: {response.status_code}:{response.text})"
                 )
 
 

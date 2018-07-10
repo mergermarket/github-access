@@ -16,7 +16,7 @@ def handle_error(err):
 
 
 github.repo_access(sys.argv[1:], handle_error)
-dependabot.add_repo(handle_error)
+# dependabot.add_repo(handle_error)
 
 if failed:
     print('error(s) were encountered - see above', file=sys.stderr)

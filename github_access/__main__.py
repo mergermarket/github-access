@@ -1,7 +1,6 @@
 import sys
 import logging
 
-
 from . import github
 from . import dependabot
 

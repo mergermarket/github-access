@@ -7,21 +7,14 @@ import json
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-github_headers = {
-    'Authorization': f"token {os.environ['GITHUB_TOKEN']}",
-    'Accept': 'application/vnd.github.machine-man-preview+json',
-    'Cache-Control': 'no-cache',
-
-}
-
 
 class DependabotRepo:
     def __init__(self, github_repo, on_error):
-        self.name = github_repo.get('name')
-        self.id = github_repo.get('id')
+        self.name = github_repo.name
+        self.id = github_repo.id
         self.on_error = on_error
 
-        self.package_manager = {
+        self.package_managers = {
             "Ruby": "bundler",
             "JavaScript": "npm_and_yarn",
             "Java": "maven",
@@ -35,6 +28,12 @@ class DependabotRepo:
             "Docker": "docker"
         }
 
+        self.github_headers = {
+            'Authorization': f"token {os.environ['GITHUB_TOKEN']}",
+            'Accept': 'application/vnd.github.machine-man-preview+json',
+            'Cache-Control': 'no-cache',
+        }
+
         self.dependabot_headers = {
             'Authorization': f"Personal {os.environ['GITHUB_TOKEN']}",
             'Cache-Control': 'no-cache',
@@ -44,7 +43,7 @@ class DependabotRepo:
         response = requests.request(
                 'GET',
                 f"https://api.github.com/repos/mergermarket/{self.name}/contents",
-                headers=github_headers)
+                headers=self.github_headers)
         self.repo_files = response.json()
 
     def has(self, filename):
@@ -81,14 +80,14 @@ class DependabotRepo:
         for lang in requests.request(
                 'GET',
                 f"https://api.github.com/repos/mergermarket/{self.name}/languages",
-                headers=github_headers).json():
-            if lang in self.package_manager.keys() and self.config_files_exist_for(lang):
-                package_managers.append(self.package_manager[lang])
+                headers=self.github_headers).json():
+            if lang in self.package_managers.keys() and self.config_files_exist_for(lang):
+                package_managers.append(self.package_managers[lang])
 
         # Docker not returned as a language
         # from Github but is a valid language in Dependabot
         if self.config_files_exist_for('Docker'):
-            package_managers.append(self.package_manager['Docker'])
+            package_managers.append(self.package_managers['Docker'])
 
         return set(package_managers)
 
@@ -117,23 +116,3 @@ class DependabotRepo:
                     f"Failed to add repo {self.name}:{package_mngr} to Dependabot app installation "
                     f"(Staus Code: {response.status_code}:{response.text})"
                 )
-
-
-def get_github_repos_from_install(
-        url="https://api.github.com/user/installations/185591/repositories",
-        repos=[]):
-
-    response = requests.request("GET", url, headers=github_headers)
-    for repo in response.json().get('repositories'):
-        repos.append(repo)
-
-    if response.links.get('next'):
-        get_github_repos_from_install(response.links['next']['url'], repos)
-    return repos
-
-
-def add_repo(on_error):
-    repos = get_github_repos_from_install()
-    for repo in repos:
-        DependabotRepo(repo, on_error).add_configs_to_dependabot()
-

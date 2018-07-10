@@ -6,6 +6,7 @@ import logging
 import requests
 
 from github import Github
+from . dependabot import DependabotRepo
 
 
 class App:
@@ -65,6 +66,7 @@ class App:
                 self.on_error(
                     f"Failed to add repo {repo.name} to Dependabot app installation"
                 )
+            DependabotRepo(repo, self.on_error).add_configs_to_dependabot()
 
     def enforce_repo_access(self, repo, desired_permission_by_team):
         teams = repo.get_teams()

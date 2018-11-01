@@ -1,4 +1,4 @@
-# github-access
+# Github Access
 
 This container can be used to set the repository permissions for a team.
 
@@ -56,3 +56,27 @@ admin to another team, add admin privilege to that team (during transfer this
 will result in an ignorable error). Now that they have admin, they will be able
 revoke the original team's admin access - at this point the error will change
 and the repository should be removed from the file.
+
+## Github Apps
+
+When you want to add Github Apps to your repo you should specify a json mapping
+of slack app names to ids and pass it into the docker run command with the 
+`--apps` flag.
+
+Example:
+```
+export GITHUB_TOKEN=my-team-member-github-token
+docker run -i -w $PWD -v $PWD -e GITHUB_TOKEN mergermark/github-access \
+    --org my-org \
+    --team my-team \
+    --access access.json
+    --apps $(cat apps.json)
+```
+
+The json being in the format:
+```
+{
+    "slack": "123456",
+    "jira": "888888"
+}
+```

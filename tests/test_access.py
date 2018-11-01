@@ -7,23 +7,26 @@ import github_access
 
 class TestArgs(unittest.TestCase):
 
-    @patch('github_access.App')
+    @patch('github_access.github.App')
     def test_args(self, App):
 
         # given
         access = [{'repos': ['test'], 'teams': {}}]
         with patch(
-            'github_access.open',
+            'github_access.github.open',
             mock_open(read_data=json.dumps(access)),
             create=True
         ) as mocked_open:
-
-            # when
-            github_access.main([
-                '--org', 'test-org',
-                '--team', 'test-team',
-                '--access', 'test-file.json'
-            ], 'test-github-token')
+            with patch.dict(
+                'github_access.github.os.environ',
+                {'GITHUB_TOKEN': 'test-github-token'}
+            ):
+                # when
+                github_access.github.repo_access([
+                    '--org', 'test-org',
+                    '--team', 'test-team',
+                    '--access', 'test-file.json'
+                ], 'test-github-token')
 
             # then
             App.assert_called_once_with(
@@ -31,7 +34,7 @@ class TestArgs(unittest.TestCase):
             )
             mocked_open.assert_called_once_with('test-file.json', 'r')
             App.return_value.run.assert_called_once_with({
-                'test': {'teams': {}}
+                'test': {'teams': {}, 'apps': {}}
             })
 
 
@@ -40,7 +43,7 @@ class TestFormatConversion(unittest.TestCase):
     def test_array_conversion(self):
 
         self.assertEqual(
-            github_access.convert_access_config([
+            github_access.github.convert_access_config([
                 {
                     'teams': {'team-a': 'pull', 'team-b': 'push'},
                     'repos': ['repo-a', 'repo-b']
@@ -51,20 +54,29 @@ class TestFormatConversion(unittest.TestCase):
                 }
             ], 'test-main-team'),
             {
-                'repo-a': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
-                'repo-b': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
-                'repo-c': {'teams': {'team-c': 'pull'}}
+                'repo-a': {
+                    'teams': {'team-a': 'pull', 'team-b': 'push'},
+                    'apps': {}
+                },
+                'repo-b': {
+                    'teams': {'team-a': 'pull', 'team-b': 'push'},
+                    'apps': {}
+                },
+                'repo-c': {
+                    'teams': {'team-c': 'pull'},
+                    'apps': {}
+                }
             }
         )
 
 
 class TestApp(unittest.TestCase):
 
-    @patch('github_access.Github')
+    @patch('github_access.github.Github')
     def setUp(self, Github):
 
         org_name = 'test-org'
-        github_token = 'test-github-token'
+        self.github_token = 'test-github-token'
 
         self.main_team = Mock()
         self.main_team.name = 'test-team'
@@ -88,10 +100,10 @@ class TestApp(unittest.TestCase):
         def handle_error(err):
             self.errors.append(err)
 
-        self.app = github_access.App(
-            org_name, self.main_team.name, github_token, handle_error
+        self.app = github_access.github.App(
+            org_name, self.main_team.name, self.github_token, handle_error
         )
-        Github.assert_called_once_with(github_token)
+        Github.assert_called_once_with(self.github_token)
         github.get_organization.assert_called_once_with(org_name)
         self.org.get_teams.assert_called_once_with()
 
@@ -120,7 +132,8 @@ class TestApp(unittest.TestCase):
                     self.test_admin_team.name: 'admin',
                     self.test_push_team.name: 'push',
                     self.test_pull_team.name: 'pull'
-                }
+                },
+                'apps': {}
             }
         })
 
@@ -177,7 +190,8 @@ class TestApp(unittest.TestCase):
                     self.test_admin_team.name: 'push',
                     self.test_push_team.name: 'pull',
                     self.test_pull_team.name: 'admin'
-                }
+                },
+                'apps': {}
             }
         })
 
@@ -228,7 +242,8 @@ class TestApp(unittest.TestCase):
         # when
         self.app.run({
             repo_name: {
-                'teams': {}
+                'teams': {},
+                'apps': {}
             }
         })
 
@@ -332,7 +347,7 @@ class TestApp(unittest.TestCase):
 
         # when
         self.app.run({
-            repo_name: {'teams': {}}
+            repo_name: {'teams': {}, 'apps': {}}
         })
 
         # then
@@ -361,9 +376,12 @@ class TestApp(unittest.TestCase):
 
         # when
         self.app.run({
-            repo_name: {'teams': {
-                'not-a-team': 'push'
-            }}
+            repo_name: {
+                'teams': {
+                    'not-a-team': 'push'
+                },
+                'apps': {}
+            }
         })
 
         # then
@@ -418,3 +436,95 @@ class TestApp(unittest.TestCase):
             f'config contained repo {repo_name}, but team does not have '
             'admin access'
         ]
+
+    @patch('github_access.github.DependabotRepo')
+    def test_adding_dependabot(self, mock_dependabot):
+        # given
+        repo_name = 'test-repo'
+
+        repo = Mock()
+        repo.archived = False
+        repo.name = repo_name
+        repo.permissions.admin = True
+        repo.id = '1234567890'
+
+        main_team_repo_access = Mock()
+        main_team_repo_access.name = self.main_team.name
+        main_team_repo_access.permission = 'admin'
+
+        repo.get_teams.return_value = [
+            main_team_repo_access
+        ]
+
+        self.main_team.get_repos.return_value = [repo]
+
+        url = (
+            f"https://api.github.com"
+            f"/user/installations/185591/repositories/{repo.id}"
+        )
+        headers = {
+            'Authorization': f"token {self.github_token}",
+            'Accept': "application/vnd.github.machine-man-preview+json",
+            'Cache-Control': "no-cache",
+        }
+
+        mock_dependabot.add_configs_to_dependabot.return_value = True
+        # when
+        with patch('github_access.github.requests') as requests:
+            self.app.run({
+                repo_name: {
+                    'teams': {
+                        self.main_team.name: 'admin'
+                    },
+                    'apps': {
+                        'dependabot': 'true'
+                    }
+                }
+            })
+            requests.request.return_value.status_code = 200
+            requests.request.assert_called_once_with("PUT", url, headers=headers)
+
+    def test_adding_slack(self):
+        # given
+        repo_name = 'test-repo'
+
+        repo = Mock()
+        repo.archived = False
+        repo.name = repo_name
+        repo.permissions.admin = True
+        repo.id = '1234567890'
+
+        main_team_repo_access = Mock()
+        main_team_repo_access.name = self.main_team.name
+        main_team_repo_access.permission = 'admin'
+
+        repo.get_teams.return_value = [
+            main_team_repo_access
+        ]
+
+        self.main_team.get_repos.return_value = [repo]
+
+        url = (
+            f"https://api.github.com"
+            f"/user/installations/176550/repositories/{repo.id}"
+        )
+        headers = {
+            'Authorization': f"token {self.github_token}",
+            'Accept': "application/vnd.github.machine-man-preview+json",
+            'Cache-Control': "no-cache",
+        }
+
+        # when
+        with patch('github_access.github.requests') as requests:
+            self.app.run({
+                repo_name: {
+                    'teams': {
+                        self.main_team.name: 'admin'
+                    },
+                    'apps': {
+                        'slack': 'true'
+                    }
+                }
+            })
+            requests.request.return_value.status_code = 200
+            requests.request.assert_called_once_with("PUT", url, headers=headers)

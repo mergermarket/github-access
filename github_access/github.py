@@ -53,20 +53,34 @@ class App:
                     'admin access'
                 )
 
+    def _add_repo_to_app(self, app_name, repo):
+        apps = {
+            'dependabot': '185591',
+            'slack': '176550'
+        }
+        url = (
+            f"https://api.github.com"
+            f"/user/installations/{apps.get(app_name)}/repositories/{repo.id}"
+        )
+        headers = {
+            'Authorization': f"token {self.github_token}",
+            'Accept': "application/vnd.github.machine-man-preview+json",
+            'Cache-Control': "no-cache",
+        }
+        response = requests.request("PUT", url, headers=headers)
+        if response.status_code != 204:
+            error_message = (
+                f"Failed to add repo {repo.name}"
+                f" to {app_name} app installation"
+            )
+            self.on_error(error_message)
+
     def enforce_app_access(self, repo, desired_permission_by_app):
-        if desired_permission_by_app.get('dependabot'):
-            url = f"https://api.github.com/user/installations/185591/repositories/{repo.id}"
-            headers = {
-                'Authorization': f"token {self.github_token}",
-                'Accept': "application/vnd.github.machine-man-preview+json",
-                'Cache-Control': "no-cache",
-            }
-            response = requests.request("PUT", url, headers=headers)
-            if response.status_code != 204:
-                self.on_error(
-                    f"Failed to add repo {repo.name} to Dependabot app installation"
-                )
-            DependabotRepo(repo, self.on_error).add_configs_to_dependabot()
+        for app_name, value in desired_permission_by_app.items():
+            self._add_repo_to_app(app_name, repo)
+            if app_name == 'dependabot':
+                DependabotRepo(repo, self.on_error, self.github_token).add_configs_to_dependabot()
+
 
     def enforce_repo_access(self, repo, desired_permission_by_team):
         teams = repo.get_teams()

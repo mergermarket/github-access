@@ -53,14 +53,14 @@ class App:
                     'admin access'
                 )
 
-    def _add_repo_to_app(self, app_name, repo_id):
+    def _add_repo_to_app(self, app_name, repo):
         apps = {
             'dependabot': '185591',
             'slack': '176550'
         }
         url = (
             f"https://api.github.com"
-            f"/user/installations/{apps.get(app_name)}/repositories/{repo_id}"
+            f"/user/installations/{apps.get(app_name)}/repositories/{repo.id}"
         )
         headers = {
             'Authorization': f"token {self.github_token}",
@@ -77,9 +77,9 @@ class App:
 
     def enforce_app_access(self, repo, desired_permission_by_app):
         for app_name, value in desired_permission_by_app.items():
-            self._add_repo_to_app(app_name, repo.id)
+            self._add_repo_to_app(app_name, repo)
             if app_name == 'dependabot':
-                DependabotRepo(repo, self.on_error).add_configs_to_dependabot()
+                DependabotRepo(repo, self.on_error, self.github_token).add_configs_to_dependabot()
 
 
     def enforce_repo_access(self, repo, desired_permission_by_team):

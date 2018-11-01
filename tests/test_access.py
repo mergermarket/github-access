@@ -76,7 +76,7 @@ class TestApp(unittest.TestCase):
     def setUp(self, Github):
 
         org_name = 'test-org'
-        github_token = 'test-github-token'
+        self.github_token = 'test-github-token'
 
         self.main_team = Mock()
         self.main_team.name = 'test-team'
@@ -101,9 +101,9 @@ class TestApp(unittest.TestCase):
             self.errors.append(err)
 
         self.app = github_access.github.App(
-            org_name, self.main_team.name, github_token, handle_error
+            org_name, self.main_team.name, self.github_token, handle_error
         )
-        Github.assert_called_once_with(github_token)
+        Github.assert_called_once_with(self.github_token)
         github.get_organization.assert_called_once_with(org_name)
         self.org.get_teams.assert_called_once_with()
 
@@ -436,3 +436,95 @@ class TestApp(unittest.TestCase):
             f'config contained repo {repo_name}, but team does not have '
             'admin access'
         ]
+
+    @patch('github_access.github.DependabotRepo')
+    def test_adding_dependabot(self, mock_dependabot):
+        # given
+        repo_name = 'test-repo'
+
+        repo = Mock()
+        repo.archived = False
+        repo.name = repo_name
+        repo.permissions.admin = True
+        repo.id = '1234567890'
+
+        main_team_repo_access = Mock()
+        main_team_repo_access.name = self.main_team.name
+        main_team_repo_access.permission = 'admin'
+
+        repo.get_teams.return_value = [
+            main_team_repo_access
+        ]
+
+        self.main_team.get_repos.return_value = [repo]
+
+        url = (
+            f"https://api.github.com"
+            f"/user/installations/185591/repositories/{repo.id}"
+        )
+        headers = {
+            'Authorization': f"token {self.github_token}",
+            'Accept': "application/vnd.github.machine-man-preview+json",
+            'Cache-Control': "no-cache",
+        }
+
+        mock_dependabot.add_configs_to_dependabot.return_value = True
+        # when
+        with patch('github_access.github.requests') as requests:
+            self.app.run({
+                repo_name: {
+                    'teams': {
+                        self.main_team.name: 'admin'
+                    },
+                    'apps': {
+                        'dependabot': 'true'
+                    }
+                }
+            })
+            requests.request.return_value.status_code = 200
+            requests.request.assert_called_once_with("PUT", url, headers=headers)
+
+    def test_adding_slack(self):
+        # given
+        repo_name = 'test-repo'
+
+        repo = Mock()
+        repo.archived = False
+        repo.name = repo_name
+        repo.permissions.admin = True
+        repo.id = '1234567890'
+
+        main_team_repo_access = Mock()
+        main_team_repo_access.name = self.main_team.name
+        main_team_repo_access.permission = 'admin'
+
+        repo.get_teams.return_value = [
+            main_team_repo_access
+        ]
+
+        self.main_team.get_repos.return_value = [repo]
+
+        url = (
+            f"https://api.github.com"
+            f"/user/installations/176550/repositories/{repo.id}"
+        )
+        headers = {
+            'Authorization': f"token {self.github_token}",
+            'Accept': "application/vnd.github.machine-man-preview+json",
+            'Cache-Control': "no-cache",
+        }
+
+        # when
+        with patch('github_access.github.requests') as requests:
+            self.app.run({
+                repo_name: {
+                    'teams': {
+                        self.main_team.name: 'admin'
+                    },
+                    'apps': {
+                        'slack': 'true'
+                    }
+                }
+            })
+            requests.request.return_value.status_code = 200
+            requests.request.assert_called_once_with("PUT", url, headers=headers)

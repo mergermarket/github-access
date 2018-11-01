@@ -9,10 +9,11 @@ logger.setLevel(logging.INFO)
 
 
 class DependabotRepo:
-    def __init__(self, github_repo, on_error):
+    def __init__(self, github_repo, on_error, github_token):
         self.name = github_repo.name
         self.id = github_repo.id
         self.on_error = on_error
+        self.github_token = github_token
 
         self.package_managers = {
             "Ruby": "bundler",
@@ -29,13 +30,13 @@ class DependabotRepo:
         }
 
         self.github_headers = {
-            'Authorization': f"token {os.environ['GITHUB_TOKEN']}",
+            'Authorization': f"token {self.github_token}",
             'Accept': 'application/vnd.github.machine-man-preview+json',
             'Cache-Control': 'no-cache',
         }
 
         self.dependabot_headers = {
-            'Authorization': f"Personal {os.environ['GITHUB_TOKEN']}",
+            'Authorization': f"Personal {self.github_token}",
             'Cache-Control': 'no-cache',
             'Content-Type': 'application/json',
         }

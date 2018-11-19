@@ -1,5 +1,4 @@
 import argparse
-import sys
 import os
 import json
 import logging
@@ -55,7 +54,10 @@ class App:
 
     def enforce_app_access(self, repo, desired_permission_by_app):
         if desired_permission_by_app.get('dependabot'):
-            url = f"https://api.github.com/user/installations/185591/repositories/{repo.id}"
+            url = (
+                f'https://api.github.com/user/installations/185591/'
+                'repositories/{repo.id}'
+            )
             headers = {
                 'Authorization': f"token {self.github_token}",
                 'Accept': "application/vnd.github.machine-man-preview+json",
@@ -64,7 +66,8 @@ class App:
             response = requests.request("PUT", url, headers=headers)
             if response.status_code != 204:
                 self.on_error(
-                    f"Failed to add repo {repo.name} to Dependabot app installation"
+                    f'Failed to add repo {repo.name} to Dependabot'
+                    'app installation'
                 )
             DependabotRepo(repo, self.on_error).add_configs_to_dependabot()
 
@@ -176,4 +179,3 @@ def repo_access(args, handle_error):
                 arguments.team
             )
         )
-

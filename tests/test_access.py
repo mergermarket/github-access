@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch, mock_open, ANY
 import json
 
-import github_access
+import github_access.github
 
 
 class TestArgs(unittest.TestCase):
@@ -41,7 +41,6 @@ class TestArgs(unittest.TestCase):
 class TestFormatConversion(unittest.TestCase):
 
     def test_array_conversion(self):
-
         self.assertEqual(
             github_access.github.convert_access_config([
                 {

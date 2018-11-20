@@ -41,9 +41,9 @@ class DependabotRepo:
         }
 
         response = requests.request(
-                'GET',
-                f"https://api.github.com/repos/mergermarket/{self.name}/contents",
-                headers=self.github_headers)
+            'GET',
+            f'https://api.github.com/repos/mergermarket/{self.name}/contents',
+            headers=self.github_headers)
         self.repo_files = response.json()
 
     def has(self, filename):
@@ -52,7 +52,7 @@ class DependabotRepo:
                 return True
         return False
 
-    def config_files_exist_for(self, lang):
+    def config_files_exist_for(self, lang):  # noqa: C901
         if lang == 'Docker':
             return self.has('Dockerfile')
         if lang == 'Ruby':
@@ -78,10 +78,12 @@ class DependabotRepo:
     def get_package_managers(self):
         package_managers = []
         for lang in requests.request(
-                'GET',
-                f"https://api.github.com/repos/mergermarket/{self.name}/languages",
-                headers=self.github_headers).json():
-            if lang in self.package_managers.keys() and self.config_files_exist_for(lang):
+            'GET',
+            f"https://api.github.com/repos/mergermarket/{self.name}/languages",
+            headers=self.github_headers
+        ).json():
+            if (lang in self.package_managers.keys() and
+                    self.config_files_exist_for(lang)):
                 package_managers.append(self.package_managers[lang])
 
         # Docker not returned as a language
@@ -108,11 +110,19 @@ class DependabotRepo:
                 headers=self.dependabot_headers)
 
             if response.status_code == 201 and response.reason == 'Created':
-                logger.info(f"Config for repo {self.name}:{package_mngr} added to Dependabot")
-            elif response.status_code == 400 and "already exists" in response.text:
-                logger.info(f"Config for repo {self.name}:{package_mngr} already exists in Dependabot")
+                logger.info(
+                    f"Config for repo {self.name}:{package_mngr}"
+                    "added to Dependabot"
+                )
+            elif (response.status_code == 400
+                    and "already exists" in response.text):
+                logger.info(
+                    f"Config for repo {self.name}:{package_mngr}"
+                    "already exists in Dependabot"
+                )
             else:
                 self.on_error(
-                    f"Failed to add repo {self.name}:{package_mngr} to Dependabot app installation "
+                    f"Failed to add repo {self.name}:{package_mngr} to "
+                    "Dependabot app installation "
                     f"(Staus Code: {response.status_code}:{response.text})"
                 )

@@ -2,28 +2,31 @@ import unittest
 from unittest.mock import Mock, patch, mock_open, ANY
 import json
 
-import github_access
+import github_access.github
 
 
 class TestArgs(unittest.TestCase):
 
-    @patch('github_access.App')
+    @patch('github_access.github.App')
     def test_args(self, App):
 
         # given
         access = [{'repos': ['test'], 'teams': {}}]
         with patch(
-            'github_access.open',
+            'github_access.github.open',
             mock_open(read_data=json.dumps(access)),
             create=True
         ) as mocked_open:
-
-            # when
-            github_access.main([
-                '--org', 'test-org',
-                '--team', 'test-team',
-                '--access', 'test-file.json'
-            ], 'test-github-token')
+            with patch.dict(
+                'github_access.github.os.environ',
+                {'GITHUB_TOKEN': 'test-github-token'}
+            ):
+                # when
+                github_access.github.repo_access([
+                    '--org', 'test-org',
+                    '--team', 'test-team',
+                    '--access', 'test-file.json'
+                ], 'test-github-token')
 
             # then
             App.assert_called_once_with(
@@ -31,16 +34,15 @@ class TestArgs(unittest.TestCase):
             )
             mocked_open.assert_called_once_with('test-file.json', 'r')
             App.return_value.run.assert_called_once_with({
-                'test': {'teams': {}}
+                'test': {'teams': {}, 'apps': {}}
             })
 
 
 class TestFormatConversion(unittest.TestCase):
 
     def test_array_conversion(self):
-
         self.assertEqual(
-            github_access.convert_access_config([
+            github_access.github.convert_access_config([
                 {
                     'teams': {'team-a': 'pull', 'team-b': 'push'},
                     'repos': ['repo-a', 'repo-b']
@@ -51,16 +53,25 @@ class TestFormatConversion(unittest.TestCase):
                 }
             ], 'test-main-team'),
             {
-                'repo-a': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
-                'repo-b': {'teams': {'team-a': 'pull', 'team-b': 'push'}},
-                'repo-c': {'teams': {'team-c': 'pull'}}
+                'repo-a': {
+                    'teams': {'team-a': 'pull', 'team-b': 'push'},
+                    'apps': {}
+                },
+                'repo-b': {
+                    'teams': {'team-a': 'pull', 'team-b': 'push'},
+                    'apps': {}
+                },
+                'repo-c': {
+                    'teams': {'team-c': 'pull'},
+                    'apps': {}
+                }
             }
         )
 
 
 class TestApp(unittest.TestCase):
 
-    @patch('github_access.Github')
+    @patch('github_access.github.Github')
     def setUp(self, Github):
 
         org_name = 'test-org'
@@ -88,7 +99,7 @@ class TestApp(unittest.TestCase):
         def handle_error(err):
             self.errors.append(err)
 
-        self.app = github_access.App(
+        self.app = github_access.github.App(
             org_name, self.main_team.name, github_token, handle_error
         )
         Github.assert_called_once_with(github_token)
@@ -120,7 +131,8 @@ class TestApp(unittest.TestCase):
                     self.test_admin_team.name: 'admin',
                     self.test_push_team.name: 'push',
                     self.test_pull_team.name: 'pull'
-                }
+                },
+                'apps': {}
             }
         })
 
@@ -177,7 +189,8 @@ class TestApp(unittest.TestCase):
                     self.test_admin_team.name: 'push',
                     self.test_push_team.name: 'pull',
                     self.test_pull_team.name: 'admin'
-                }
+                },
+                'apps': {}
             }
         })
 
@@ -228,7 +241,8 @@ class TestApp(unittest.TestCase):
         # when
         self.app.run({
             repo_name: {
-                'teams': {}
+                'teams': {},
+                'apps': {}
             }
         })
 
@@ -332,7 +346,7 @@ class TestApp(unittest.TestCase):
 
         # when
         self.app.run({
-            repo_name: {'teams': {}}
+            repo_name: {'teams': {}, 'apps': {}}
         })
 
         # then
@@ -361,9 +375,12 @@ class TestApp(unittest.TestCase):
 
         # when
         self.app.run({
-            repo_name: {'teams': {
-                'not-a-team': 'push'
-            }}
+            repo_name: {
+                'teams': {
+                    'not-a-team': 'push'
+                },
+                'apps': {}
+            }
         })
 
         # then

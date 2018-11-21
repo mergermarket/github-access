@@ -56,7 +56,7 @@ class App:
         if desired_permission_by_app.get('dependabot'):
             url = (
                 f'https://api.github.com/user/installations/185591/'
-                'repositories/{repo.id}'
+                f'repositories/{repo.id}'
             )
             headers = {
                 'Authorization': f"token {self.github_token}",

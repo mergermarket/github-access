@@ -2,10 +2,8 @@ import argparse
 import os
 import json
 import logging
-import requests
 
 from github import Github
-from . dependabot import DependabotRepo
 
 
 class App:
@@ -42,7 +40,6 @@ class App:
             )
             return
         self.enforce_repo_access(repo, repo_access_config['teams'])
-        self.enforce_app_access(repo, repo_access_config['apps'])
 
     def check_unknown_repos(self, access_config, seen):
         for name in access_config:
@@ -51,25 +48,6 @@ class App:
                     f'config contained repo {name}, but team does not have '
                     'admin access'
                 )
-
-    def enforce_app_access(self, repo, desired_permission_by_app):
-        if desired_permission_by_app.get('dependabot'):
-            url = (
-                f'https://api.github.com/user/installations/185591/'
-                f'repositories/{repo.id}'
-            )
-            headers = {
-                'Authorization': f"token {self.github_token}",
-                'Accept': "application/vnd.github.machine-man-preview+json",
-                'Cache-Control': "no-cache",
-            }
-            response = requests.request("PUT", url, headers=headers)
-            if response.status_code != 204:
-                self.on_error(
-                    f'Failed to add repo {repo.name} to Dependabot'
-                    'app installation'
-                )
-            DependabotRepo(repo, self.on_error).add_configs_to_dependabot()
 
     def enforce_repo_access(self, repo, desired_permission_by_team):
         teams = repo.get_teams()
@@ -155,7 +133,7 @@ def validate_access_config(access_config, main_team):
 def convert_access_config(access_config, main_team):
     validate_access_config(access_config, main_team)
     return {
-        repo: {'teams': level['teams'], 'apps': level.get('apps', {})}
+        repo: {'teams': level['teams']}
         for level in access_config
         for repo in level['repos']
     }

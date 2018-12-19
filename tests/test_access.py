@@ -34,7 +34,7 @@ class TestArgs(unittest.TestCase):
             )
             mocked_open.assert_called_once_with('test-file.json', 'r')
             App.return_value.run.assert_called_once_with({
-                'test': {'teams': {}, 'apps': {}}
+                'test': {'teams': {}}
             })
 
 
@@ -54,16 +54,13 @@ class TestFormatConversion(unittest.TestCase):
             ], 'test-main-team'),
             {
                 'repo-a': {
-                    'teams': {'team-a': 'pull', 'team-b': 'push'},
-                    'apps': {}
+                    'teams': {'team-a': 'pull', 'team-b': 'push'}
                 },
                 'repo-b': {
-                    'teams': {'team-a': 'pull', 'team-b': 'push'},
-                    'apps': {}
+                    'teams': {'team-a': 'pull', 'team-b': 'push'}
                 },
                 'repo-c': {
-                    'teams': {'team-c': 'pull'},
-                    'apps': {}
+                    'teams': {'team-c': 'pull'}
                 }
             }
         )
@@ -131,8 +128,7 @@ class TestApp(unittest.TestCase):
                     self.test_admin_team.name: 'admin',
                     self.test_push_team.name: 'push',
                     self.test_pull_team.name: 'pull'
-                },
-                'apps': {}
+                }
             }
         })
 

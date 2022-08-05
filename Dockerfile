@@ -1,4 +1,4 @@
-FROM python:3.8.2 as base
+FROM python:3.10.6 as base
 
 ADD requirements.txt /tmp/
 RUN pip install -r /tmp/requirements.txt

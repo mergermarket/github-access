@@ -31,7 +31,7 @@ class App:
                 continue
             seen.add(repo.name)
             self.handle_repo(repo, access_config.get(repo.name))
-            time.sleep(0.5)
+            time.sleep(1.0)
         self.check_unknown_repos(access_config, seen)
 
     def handle_repo(self, repo, repo_access_config):
